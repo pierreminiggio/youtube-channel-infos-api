@@ -25,3 +25,5 @@ if (strlen($calledEndPoint) > 1 && substr($calledEndPoint, -1) === '/') {
     $calledEndPoint,
     $queryParameters
 );
+
+exit;
