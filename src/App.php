@@ -143,7 +143,7 @@ class App
             ? $snippet->thumbnails->high->url
             : null
         ;
-        $country = $snippet->country;
+        $country = $snippet->country ?? null;
 
         $publishedAtDate = DateTime::createFromFormat(DateTimeInterface::ISO8601, $publishedAt);
 
