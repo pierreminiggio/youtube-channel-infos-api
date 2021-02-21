@@ -145,7 +145,10 @@ class App
         ;
         $country = $snippet->country ?? null;
 
-        $publishedAtDate = DateTime::createFromFormat(DateTimeInterface::ISO8601, $publishedAt);
+        $publishedAtDate = ! empty($publishedAt)
+            ? DateTime::createFromFormat(DateTimeInterface::ISO8601, $publishedAt)
+            : null
+        ;
 
         $fetcher->exec(
             $fetcher
