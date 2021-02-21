@@ -2,6 +2,11 @@
 
 namespace App;
 
+use DateTime;
+use DateTimeInterface;
+use PierreMiniggio\DatabaseConnection\DatabaseConnection;
+use PierreMiniggio\DatabaseFetcher\DatabaseFetcher;
+
 class App
 {
     public function run(string $path, ?string $queryParameters): void
@@ -19,12 +24,43 @@ class App
             http_response_code(404);
 
             return;
-        } else {
-            $channelId = $matches[0];
         }
+
+        $channelId = $matches[0];
 
         $config = require __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'config.php';
         $apiConfig = $config['api'];
+        $dbConfig = $config['db'];
+        $fetcher = new DatabaseFetcher(new DatabaseConnection(
+            $dbConfig['host'],
+            $dbConfig['database'],
+            $dbConfig['username'],
+            $dbConfig['password']
+        ));
+
+        $queriedIds = $fetcher->query(
+            $fetcher
+                ->createQuery('unprocessable_request')
+                ->select('id')
+                ->where('request = :request')
+            ,
+            ['request' => $channelId]
+        );
+
+        if ($queriedIds) {
+            http_response_code(404);
+
+            return;
+        }
+
+        $channelInfos = $this->findChannelInfosIfPresent($fetcher, $channelId);
+
+        if ($channelInfos) {
+            http_response_code(200);
+            echo json_encode($channelInfos);
+
+            return;
+        }
 
         // Check if channel exists on Youtube API
         $accessTokenCurl = curl_init();
@@ -78,6 +114,13 @@ class App
         }
 
         if (empty($jsonResponse->pageInfo) || empty($jsonResponse->pageInfo->totalResults)) {
+            $fetcher->exec(
+                $fetcher
+                    ->createQuery('unprocessable_request')
+                    ->insertInto('request', ':channel_id')
+                ,
+                ['channel_id' => $channelId]
+            );
             http_response_code(404);
 
             return;
@@ -100,8 +143,66 @@ class App
             : null
         ;
         $country = $snippet->country;
-        var_dump($channelId, $title, $description, $customUrl, $publishedAt, $thumbnail, $country);
 
-        echo 'Yeay !';
+        $publishedAtDate = DateTime::createFromFormat(DateTimeInterface::ISO8601, $publishedAt);
+
+        $fetcher->exec(
+            $fetcher
+                ->createQuery('channel_info')
+                ->insertInto(
+                    'channel_id, title, description, custom_url, published_at, photo, country',
+                    ':channelId, :title, :description, :customUrl, :publishedAt, :thumbnail, :country'
+                )
+            ,
+            [
+                'channelId' => $channelId,
+                'title' => $title,
+                'description' => $description,
+                'customUrl' => $customUrl,
+                'publishedAt' => $publishedAtDate ? $publishedAtDate->format('Y-m-d H:i:s') : null,
+                'thumbnail' => $thumbnail,
+                'country' => $country
+            ]
+        );
+        
+        $channelInfos = $this->findChannelInfosIfPresent($fetcher, $channelId);
+
+        if ($channelInfos) {
+            http_response_code(200);
+            echo json_encode($channelInfos);
+
+            return;
+        }
+
+        http_response_code(500);
+    }
+
+    protected function findChannelInfosIfPresent(DatabaseFetcher $fetcher, string $channelId): ?array
+    {
+        $fetchedChannels = $fetcher->query(
+            $fetcher
+                ->createQuery('channel_info')
+                ->select('channel_id, title, description, custom_url, published_at, photo, country')
+                ->where('channel_id = :channel_id')
+            ,
+            ['channel_id' => $channelId]
+        );
+
+        if (! $fetchedChannels) {
+
+            return null;
+        }
+
+        $fetchedChannel = $fetchedChannels[0];
+
+        return [
+            'channel_id' => $fetchedChannel['channel_id'],
+            'title' => $fetchedChannel['title'],
+            'description' => $fetchedChannel['description'],
+            'custom_url' => $fetchedChannel['custom_url'],
+            'published_at' => $fetchedChannel['published_at'],
+            'photo' => $fetchedChannel['photo'],
+            'country' => $fetchedChannel['country']
+        ];
     }
 }
