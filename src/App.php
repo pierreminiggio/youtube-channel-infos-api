@@ -136,7 +136,7 @@ class App
         $snippet = $entry->snippet;
         $title = $snippet->title;
         $description = $snippet->description;
-        $customUrl = $snippet->customUrl;
+        $customUrl = $snippet->customUrl ?? null;
         $publishedAt = $snippet->publishedAt;
         $thumbnail = ! empty($snippet->thumbnails) && ! empty($snippet->thumbnails->high)
             ? $snippet->thumbnails->high->url

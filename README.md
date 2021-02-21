@@ -33,7 +33,7 @@ CREATE TABLE `channel_info` (
   `channel_id` varchar(255) NOT NULL,
   `title` varchar(255) NOT NULL,
   `description` text NOT NULL,
-  `custom_url` varchar(255) NOT NULL,
+  `custom_url` varchar(255) NULL,
   `published_at` datetime DEFAULT NULL,
   `photo` text NOT NULL,
   `country` char(2) DEFAULT NULL,
