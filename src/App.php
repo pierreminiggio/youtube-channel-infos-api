@@ -17,8 +17,47 @@ class App
             return;
         }
 
-        $channelId = substr($path, 1);
-        preg_match('/^UC[\w-]{21}[AQgw]/', $channelId, $matches);
+        $request = substr($path, 1);
+
+        if ($request === 'all') {
+            $config = require __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'config.php';
+            $dbConfig = $config['db'];
+
+            $fetcher = new DatabaseFetcher(new DatabaseConnection(
+                $dbConfig['host'],
+                $dbConfig['database'],
+                $dbConfig['username'],
+                $dbConfig['password'],
+                DatabaseConnection::UTF8_MB4
+            ));
+
+            $queriedChannels = $fetcher->query(
+                $fetcher->createQuery(
+                    'channel_info'
+                )->select(
+                    'channel_id',
+                    'title',
+                    'description',
+                    'custom_url',
+                    'published_at',
+                    'photo'
+                )
+            );
+
+            http_response_code(200);
+            echo json_encode(array_map(fn (array $queriedChannel): array => [
+                'channel_id' => $queriedChannel['channel_id'],
+                'title' => $queriedChannel['title'],
+                'description' => $queriedChannel['description'],
+                'custom_url' => $queriedChannel['custom_url'],
+                'published_at' => $queriedChannel['published_at'],
+                'photo' => $queriedChannel['photo']
+            ], $queriedChannels));
+
+            return;
+        }
+
+        preg_match('/^UC[\w-]{21}[AQgw]/', $request, $matches);
 
         if (count($matches) !== 1) {
             http_response_code(404);
