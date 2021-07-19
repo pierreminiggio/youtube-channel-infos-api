@@ -287,8 +287,15 @@ class App
             curl_setopt($ch, CURLOPT_FILE, $fp);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
             curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
             fclose($fp);
+
+            if ($httpCode !== 200) {
+                unlink($photoPath);
+
+                return $this->host . '/placeholder.png';
+            }
         }
 
         return $this->host . '/cache/' . $photoName;
