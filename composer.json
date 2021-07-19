@@ -15,6 +15,7 @@
         "sort-packages": true
     },
     "require": {
+        "ext-curl": "*",
         "pierreminiggio/database-fetcher": "^1.0"
     }
 }

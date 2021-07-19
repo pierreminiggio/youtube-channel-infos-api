@@ -9,6 +9,14 @@ use PierreMiniggio\DatabaseFetcher\DatabaseFetcher;
 
 class App
 {
+
+    public function __construct(
+        private string $baseDir,
+        private string $host
+    )
+    {
+    }
+
     public function run(string $path, ?string $queryParameters): void
     {
         if ($path === '/') {
@@ -96,6 +104,11 @@ class App
         $channelInfos = $this->findChannelInfosIfPresent($fetcher, $channelId);
 
         if ($channelInfos) {
+            $channelInfos['photo'] = $this->getLocalePhotoOrDownloadItOrShowPlaceholderInstead(
+                $channelInfos['photo'],
+                $channelInfos['channel_id']
+            );
+
             http_response_code(200);
             echo json_encode($channelInfos);
 
@@ -210,14 +223,19 @@ class App
         
         $channelInfos = $this->findChannelInfosIfPresent($fetcher, $channelId);
 
-        if ($channelInfos) {
-            http_response_code(200);
-            echo json_encode($channelInfos);
+        if (! $channelInfos) {
+            http_response_code(500);
 
             return;
         }
 
-        http_response_code(500);
+        $channelInfos['photo'] = $this->getLocalePhotoOrDownloadItOrShowPlaceholderInstead(
+            $channelInfos['photo'],
+            $channelInfos['channel_id']
+        );
+
+        http_response_code(200);
+        echo json_encode($channelInfos);
     }
 
     protected function findChannelInfosIfPresent(DatabaseFetcher $fetcher, string $channelId): ?array
@@ -247,5 +265,32 @@ class App
             'photo' => $fetchedChannel['photo'],
             'country' => $fetchedChannel['country']
         ];
+    }
+
+    protected function getLocalePhotoOrDownloadItOrShowPlaceholderInstead(string $photoUrl, string $channelId): string
+    {
+        $cacheDir = $this->baseDir . 'cache' . DIRECTORY_SEPARATOR;
+
+        if (! file_exists($cacheDir)) {
+            mkdir($cacheDir);
+        }
+
+        $photoName =  $channelId . '.png';
+        $photoPath = $cacheDir . $photoName;
+
+        if (! file_exists($photoPath)) {
+            set_time_limit(0);
+
+            $fp = fopen($photoPath, 'w+');
+            $ch = curl_init($photoUrl);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 50);
+            curl_setopt($ch, CURLOPT_FILE, $fp);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_exec($ch);
+            curl_close($ch);
+            fclose($fp);
+        }
+
+        return $this->host . '/cache/' . $photoName;
     }
 }

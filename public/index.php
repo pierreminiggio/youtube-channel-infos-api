@@ -1,6 +1,8 @@
 <?php
 
-require __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
+$baseDir = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR;
+
+require $baseDir . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
 
 use App\App;
 
@@ -21,7 +23,14 @@ if (strlen($calledEndPoint) > 1 && substr($calledEndPoint, -1) === '/') {
     $calledEndPoint = substr($calledEndPoint, 0, -1);
 }
 
-(new App())->run(
+$protocol = isset($_SERVER['HTTPS']) ? 'https' : 'http';
+$host = $protocol . '://' . $_SERVER['HTTP_HOST'];
+
+if (str_ends_with($host, '/')) {
+    $host = substr($host, 0, -1);
+}
+
+(new App($baseDir, $host))->run(
     $calledEndPoint,
     $queryParameters
 );
