@@ -117,7 +117,11 @@ ALTER TABLE `unprocessable_request`
 -- AUTO_INCREMENT pour la table `unprocessable_request`
 --
 ALTER TABLE `unprocessable_request`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;COMMIT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  
+ALTER TABLE `channel_info` CHANGE `custom_url` `custom_url` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;
+  
+COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
